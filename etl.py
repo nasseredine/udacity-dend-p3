@@ -71,9 +71,15 @@ def process_log_data(spark, input_data, output_data):
 
     df = spark.read.json(log_data)
     df = df.filter(col("page") == "NextSong")
-
-    # extract columns for users table    
-    artists_table = 
+    
+    df.createOrReplaceTempView("log_data")
+    users_table = spark.sql("""
+    SELECT DISTINCT userId AS user_id, firstName AS first_name, lastName as last_name, gender, level
+    FROM log_data AS ld1
+    WHERE ld1.userId IS NOT NULL AND ld1.ts = (SELECT MAX(ld2.ts)
+                                               FROM log_data AS ld2
+                                               WHERE ld2.userId = ld1.userId )
+    """)
     
     # write users table to parquet files
     artists_table
