@@ -48,8 +48,14 @@ def process_song_data(spark, input_data, output_data):
     
     songs_table.write.partitionBy("year", "artist_id").parquet(os.path.join(output_data, "songs.parquet"))
 
-    # extract columns to create artists table
-    artists_table = 
+    df.createOrReplaceTempView("song_data")
+    artists_table = spark.sql("""
+    SELECT DISTINCT artist_id, artist_name, artist_location, artist_latitude, artist_longitude
+    FROM song_data AS sd1
+    WHERE sd1.artist_id IS NOT NULL AND sd1.year = (SELECT MAX(sd2.year)
+                                                    FROM song_data AS sd2
+                                                    WHERE sd2.artist_id = sd1.artist_id)
+    """)
     
     # write artists table to parquet files
     artists_table
