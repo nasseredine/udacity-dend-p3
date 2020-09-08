@@ -135,8 +135,7 @@ def process_log_data(spark, input_data, output_data):
     ON ld.song = sd.title AND ld.artist = sd.artist_name AND ld.length = sd.duration
     """)
 
-    # write songplays table to parquet files partitioned by year and month
-    songplays_table
+    songplays_table.write.parquet(os.path.join(output_data, "songplays.parquet"))
 
 
 def main():
