@@ -4,7 +4,7 @@ import os
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, col
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
-
+from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, IntegerType as Int, DecimalType as Dcl
 
 config = configparser.ConfigParser()
 config.read('dl.cfg')
@@ -27,23 +27,43 @@ def create_spark_session():
 
 
 def process_song_data(spark, input_data, output_data):
-    # get filepath to song data file
-    song_data = 
+    """Processes song data and creates songs and artists tables.
+    Args:
+        spark (SparkSession): The SparkSession object.
+        input_data (str): Input data location in Amazon S3.
+        output_data (str): Output data location in Amazon S3.
+    """
+    song_data = os.path.join(input_data, "song_data/*/*/*/*.json")
     
-    # read song data file
-    df = 
+    song_schema = R([
+        Fld("artist_id", Str()),
+        Fld("artist_latitude", Dcl(8,5)),
+        Fld("artist_location", Str()),
+        Fld("artist_longitude", Dcl(8,5)),
+        Fld("artist_name", Str()),
+        Fld("duration", Dcl(9,5)),
+        Fld("num_songs", Int()),
+        Fld("song_id", Str()),
+        Fld("title", Str()),
+        Fld("year", Int()),
+    ])
+    
+    df = spark.read.json(song_data, schema=song_schema)
 
-    # extract columns to create songs table
-    songs_table = 
+    songs_table = df.select("song_id", "title", "artist_id", "year", "duration").where(col("song_id").isNotNull())
     
-    # write songs table to parquet files partitioned by year and artist
-    songs_table
+    songs_table.write.partitionBy("year", "artist_id").parquet(os.path.join(output_data, "songs.parquet"))
 
-    # extract columns to create artists table
-    artists_table = 
+    df.createOrReplaceTempView("song_data")
+    artists_table = spark.sql("""
+    SELECT DISTINCT artist_id, artist_name, artist_location, artist_latitude, artist_longitude
+    FROM song_data AS sd1
+    WHERE sd1.artist_id IS NOT NULL AND sd1.year = (SELECT MAX(sd2.year)
+                                                    FROM song_data AS sd2
+                                                    WHERE sd2.artist_id = sd1.artist_id)
+    """)
     
-    # write artists table to parquet files
-    artists_table
+    artists_table.write.parquet(os.path.join(output_data, "artists.parquet"))
 
 
 def process_log_data(spark, input_data, output_data):
