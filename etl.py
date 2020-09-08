@@ -104,8 +104,21 @@ def process_log_data(spark, input_data, output_data):
     
     time_table.write.partitionBy("year", "month").parquet(os.path.join(output_data, "time.parquet"))
 
-    # read in song data to use for songplays table
-    song_df = 
+    song_data = os.path.join(input_data, "song_data/*/*/*/*.json")
+    song_schema = R([
+        Fld("artist_id", Str()),
+        Fld("artist_latitude", Dcl(8,5)),
+        Fld("artist_location", Str()),
+        Fld("artist_longitude", Dcl(8,5)),
+        Fld("artist_name", Str()),
+        Fld("duration", Dcl(9,5)),
+        Fld("num_songs", Int()),
+        Fld("song_id", Str()),
+        Fld("title", Str()),
+        Fld("year", Int()),
+    ])
+
+    song_df = spark.read.json(song_data, schema=song_schema)
 
     # extract columns from joined song and log datasets to create songplays table 
     songplays_table = 
