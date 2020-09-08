@@ -145,6 +145,11 @@ def process_log_data(spark, input_data, output_data):
 
 
 def main():
+    """
+    - Creates a SparkSession object.
+    - Processes song data.
+    - Processes log data.
+    """
     spark = create_spark_session()
     input_data = "s3a://udacity-dend/"
     output_data = ""
