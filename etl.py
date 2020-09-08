@@ -27,6 +27,12 @@ def create_spark_session():
 
 
 def process_song_data(spark, input_data, output_data):
+    """Processes song data and creates songs and artists tables.
+    Args:
+        spark (SparkSession): The SparkSession object.
+        input_data (str): Input data location in Amazon S3.
+        output_data (str): Output data location in Amazon S3.
+    """
     song_data = os.path.join(input_data, "song_data/*/*/*/*.json")
     
     song_schema = R([
