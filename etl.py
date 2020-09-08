@@ -1,10 +1,12 @@
 import configparser
-from datetime import datetime
 import os
+from datetime import datetime
+
 from pyspark.sql import SparkSession, Window
 from pyspark.sql.functions import udf, col, row_number
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, dayofweek, date_format
 from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, IntegerType as Int, DecimalType as Dcl, TimestampType as Ts
+
 
 config = configparser.ConfigParser()
 config.read('dl.cfg')
