@@ -1,10 +1,10 @@
 import configparser
 from datetime import datetime
 import os
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, col
-from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
-from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, IntegerType as Int, DecimalType as Dcl
+from pyspark.sql import SparkSession, Window
+from pyspark.sql.functions import udf, col, row_number
+from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, dayofweek, date_format
+from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, IntegerType as Int, DecimalType as Dcl, TimestampType as Ts
 
 config = configparser.ConfigParser()
 config.read('dl.cfg')
@@ -67,43 +67,81 @@ def process_song_data(spark, input_data, output_data):
 
 
 def process_log_data(spark, input_data, output_data):
-    # get filepath to log data file
-    log_data =
+    """Processes song data and creates users, time and songplays tables.
+    Args:
+        spark (SparkSession): The SparkSession object.
+        input_data (str): Input data location in Amazon S3.
+        output_data (str): Output data location in Amazon S3.
+    """
+    log_data = "s3a://udacity-dend/log_data"
 
-    # read log data file
-    df = 
+    df = spark.read.json(log_data)
+    df = df.filter(col("page") == "NextSong")
     
-    # filter by actions for song plays
-    df = 
-
-    # extract columns for users table    
-    artists_table = 
+    df.createOrReplaceTempView("log_data")
+    users_table = spark.sql("""
+    SELECT DISTINCT userId AS user_id, firstName AS first_name, lastName as last_name, gender, level
+    FROM log_data AS ld1
+    WHERE ld1.userId IS NOT NULL AND ld1.ts = (SELECT MAX(ld2.ts)
+                                               FROM log_data AS ld2
+                                               WHERE ld2.userId = ld1.userId )
+    """)
     
-    # write users table to parquet files
-    artists_table
+    users_table.write.parquet(os.path.join(output_data, "users.parquet"))
 
-    # create timestamp column from original timestamp column
-    get_timestamp = udf()
-    df = 
+    get_timestamp = udf(lambda ms: datetime.fromtimestamp(ms/1000.0), Ts())
+    spark.udf.register("get_timestamp", get_timestamp)
+    df = df.withColumn("start_time", get_timestamp(col("ts")))
     
-    # create datetime column from original timestamp column
-    get_datetime = udf()
-    df = 
+    window = Window.orderBy("userId", "sessionId", "itemInSession")
+    df = df.withColumn('songplay_id', row_number().over(window))
     
-    # extract columns to create time table
-    time_table = 
+    time_table = spark.sql("""
+    SELECT distinct start_time,
+            hour(start_time) AS hour,
+            dayofmonth(start_time) AS day,
+            weekofyear(start_time) AS week,
+            month(start_time) AS month,
+            year(start_time) AS year,
+            dayofweek(start_time) AS weekday
+    FROM log_data
+    WHERE start_time IS NOT NULL
+    """)
     
-    # write time table to parquet files partitioned by year and month
-    time_table
+    time_table.write.partitionBy("year", "month").parquet(os.path.join(output_data, "time.parquet"))
 
-    # read in song data to use for songplays table
-    song_df = 
+    song_data = os.path.join(input_data, "song_data/*/*/*/*.json")
+    song_schema = R([
+        Fld("artist_id", Str()),
+        Fld("artist_latitude", Dcl(8,5)),
+        Fld("artist_location", Str()),
+        Fld("artist_longitude", Dcl(8,5)),
+        Fld("artist_name", Str()),
+        Fld("duration", Dcl(9,5)),
+        Fld("num_songs", Int()),
+        Fld("song_id", Str()),
+        Fld("title", Str()),
+        Fld("year", Int()),
+    ])
 
-    # extract columns from joined song and log datasets to create songplays table 
-    songplays_table = 
+    song_df = spark.read.json(song_data, schema=song_schema)
 
-    # write songplays table to parquet files partitioned by year and month
-    songplays_table
+    song_df.createOrReplaceTempView("song_data")
+    songplays_table = spark.sql("""
+    SELECT  ld.songplay_id,
+            ld.start_time,
+            ld.userId as user_id,
+            ld.level,
+            sd.artist_id,
+            ld.sessionId as session_id,
+            sd.artist_location AS location,
+            ld.userAgent AS userAgent
+    FROM log_data AS ld
+    JOIN song_data AS sd
+    ON ld.song = sd.title AND ld.artist = sd.artist_name AND ld.length = sd.duration
+    """)
+
+    songplays_table.write.parquet(os.path.join(output_data, "songplays.parquet"))
 
 
 def main():
