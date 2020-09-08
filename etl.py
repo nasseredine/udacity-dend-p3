@@ -67,6 +67,12 @@ def process_song_data(spark, input_data, output_data):
 
 
 def process_log_data(spark, input_data, output_data):
+    """Processes song data and creates users, time and songplays tables.
+    Args:
+        spark (SparkSession): The SparkSession object.
+        input_data (str): Input data location in Amazon S3.
+        output_data (str): Output data location in Amazon S3.
+    """
     log_data = "s3a://udacity-dend/log_data"
 
     df = spark.read.json(log_data)
