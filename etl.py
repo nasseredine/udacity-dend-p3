@@ -81,8 +81,7 @@ def process_log_data(spark, input_data, output_data):
                                                WHERE ld2.userId = ld1.userId )
     """)
     
-    # write users table to parquet files
-    artists_table
+    users_table.write.parquet(os.path.join(output_data, "users.parquet"))
 
     # create timestamp column from original timestamp column
     get_timestamp = udf()
