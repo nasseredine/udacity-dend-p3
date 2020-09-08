@@ -4,7 +4,7 @@ import os
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, col
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
-
+from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, IntegerType as Int, DecimalType as Dcl
 
 config = configparser.ConfigParser()
 config.read('dl.cfg')
@@ -27,11 +27,22 @@ def create_spark_session():
 
 
 def process_song_data(spark, input_data, output_data):
-    # get filepath to song data file
-    song_data = 
+    song_data = os.path.join(input_data, "song_data/*/*/*/*.json")
     
-    # read song data file
-    df = 
+    song_schema = R([
+        Fld("artist_id", Str()),
+        Fld("artist_latitude", Dcl(8,5)),
+        Fld("artist_location", Str()),
+        Fld("artist_longitude", Dcl(8,5)),
+        Fld("artist_name", Str()),
+        Fld("duration", Dcl(9,5)),
+        Fld("num_songs", Int()),
+        Fld("song_id", Str()),
+        Fld("title", Str()),
+        Fld("year", Int()),
+    ])
+    
+    df = spark.read.json(song_data, schema=song_schema)
 
     # extract columns to create songs table
     songs_table = 
