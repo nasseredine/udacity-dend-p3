@@ -70,9 +70,7 @@ def process_log_data(spark, input_data, output_data):
     log_data = "s3a://udacity-dend/log_data"
 
     df = spark.read.json(log_data)
-    
-    # filter by actions for song plays
-    df = 
+    df = df.filter(col("page") == "NextSong")
 
     # extract columns for users table    
     artists_table = 
