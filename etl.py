@@ -57,8 +57,7 @@ def process_song_data(spark, input_data, output_data):
                                                     WHERE sd2.artist_id = sd1.artist_id)
     """)
     
-    # write artists table to parquet files
-    artists_table
+    artists_table.write.parquet(os.path.join(output_data, "artists.parquet"))
 
 
 def process_log_data(spark, input_data, output_data):
