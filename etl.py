@@ -102,8 +102,7 @@ def process_log_data(spark, input_data, output_data):
     WHERE start_time IS NOT NULL
     """)
     
-    # write time table to parquet files partitioned by year and month
-    time_table
+    time_table.write.partitionBy("year", "month").parquet(os.path.join(output_data, "time.parquet"))
 
     # read in song data to use for songplays table
     song_df = 
