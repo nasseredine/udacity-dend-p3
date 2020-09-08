@@ -1,8 +1,8 @@
 import configparser
 from datetime import datetime
 import os
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, col
+from pyspark.sql import SparkSession, Window
+from pyspark.sql.functions import udf, col, row_number
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
 from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, IntegerType as Int, DecimalType as Dcl, TimestampType as Ts
 
@@ -86,6 +86,9 @@ def process_log_data(spark, input_data, output_data):
     get_timestamp = udf(lambda ms: datetime.fromtimestamp(ms/1000.0), Ts())
     spark.udf.register("get_timestamp", get_timestamp)
     df = df.withColumn("start_time", get_timestamp(col("ts")))
+    
+    window = Window.orderBy("userId", "sessionId", "itemInSession")
+    df = df.withColumn('songplay_id', row_number().over(window))
     
     # extract columns to create time table
     time_table = 
