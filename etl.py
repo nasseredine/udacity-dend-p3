@@ -120,8 +120,20 @@ def process_log_data(spark, input_data, output_data):
 
     song_df = spark.read.json(song_data, schema=song_schema)
 
-    # extract columns from joined song and log datasets to create songplays table 
-    songplays_table = 
+    song_df.createOrReplaceTempView("song_data")
+    songplays_table = spark.sql("""
+    SELECT  ld.songplay_id,
+            ld.start_time,
+            ld.userId as user_id,
+            ld.level,
+            sd.artist_id,
+            ld.sessionId as session_id,
+            sd.artist_location AS location,
+            ld.userAgent AS userAgent
+    FROM log_data AS ld
+    JOIN song_data AS sd
+    ON ld.song = sd.title AND ld.artist = sd.artist_name AND ld.length = sd.duration
+    """)
 
     # write songplays table to parquet files partitioned by year and month
     songplays_table
